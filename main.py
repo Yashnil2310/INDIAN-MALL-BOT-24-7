@@ -4,8 +4,8 @@ from threading import Thread
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-BOT_TOKEN = '7796252339:AAHyV5shPLXzNMeIwy_uqBl1fRa3XgBNBfA'
-ADMIN_ID = 123456789  # Replace with your Telegram ID
+BOT_TOKEN = '7796252339:AAHt1MKCBjDnVjm2F2MglIFn-m2a2fRUXyk'
+ADMIN_ID = 7482893034  # Replace with your Telegram ID
 
 FAQS = {
     "Delivery Charges": (
