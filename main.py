@@ -86,7 +86,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if ADMIN_ID != 123456789:
         await context.bot.send_photo(chat_id=ADMIN_ID, photo=photo.file_id,
                                      caption=f"📸 Image received from @{update.effective_user.username or 'user'}")
-    await update.message.reply_text("✅ Thanks! We’ve received your image. Our support team will get back to you shortly.")
+    await update.message.reply_text(""✅ *Thank you!*\n\n*We’ve received your image.*\nOur support team will review it and get back to you shortly. 🛠️"
+")
 
 app = Flask(__name__)
 
