@@ -106,6 +106,24 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='Markdown'
         )
 
+async def reply_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ You are not authorized to use this command.")
+        return
+
+    if len(context.args) < 2:
+        await update.message.reply_text("⚠️ Usage: /reply <user_id> <your message>")
+        return
+
+    user_id = int(context.args[0])
+    message_text = " ".join(context.args[1:])
+
+    try:
+        await context.bot.send_message(chat_id=user_id, text=message_text)
+        await update.message.reply_text("✅ Message sent successfully.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Failed to send message: {e}")
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -120,6 +138,7 @@ if __name__ == '__main__':
 
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("reply", reply_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     application.run_polling()
