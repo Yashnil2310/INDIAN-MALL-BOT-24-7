@@ -5,7 +5,7 @@ from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
 # ✅ Replace with your actual bot token
-BOT_TOKEN = '7796252339:AAHyV5shPLXzNMeIwy_uqBl1fRa3XgBNBfA'
+BOT_TOKEN = '7796252339:AAHt1MKCBjDnVjm2F2MglIFn-m2a2fRUXyk'
 
 # FAQs
 FAQS = {
