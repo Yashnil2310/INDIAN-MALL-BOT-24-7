@@ -1,12 +1,14 @@
-
 from flask import Flask
 from threading import Thread
+import re
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
+# Bot Token and Admin ID
 BOT_TOKEN = '7796252339:AAHt1MKCBjDnVjm2F2MglIFn-m2a2fRUXyk'
-ADMIN_ID = 7482893034  # Replace with your Telegram user ID
+ADMIN_ID = 7482893034
 
+# FAQs Dictionary
 FAQS = {
     "Delivery Charges": (
         "📦 *Delivery Charges:*\n"
@@ -40,12 +42,14 @@ FAQS = {
     )
 }
 
+# Custom Keyboard
 faq_keyboard = ReplyKeyboardMarkup(
     keyboard=[[key] for key in FAQS.keys()],
     resize_keyboard=True,
     one_time_keyboard=False
 )
 
+# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         with open("NAMASTE.png", "rb") as photo:
@@ -71,18 +75,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
+# 📨 Handle Text Messages + Detect Mobile Number
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text.strip()
     username = update.effective_user.username or update.effective_user.first_name or "there"
+    user_id = update.effective_user.id
+
+    # Check for mobile number
+    found_numbers = re.findall(r'\b[6-9]\d{9}\b', user_message)
+    if found_numbers:
+        for number in found_numbers:
+            await context.bot.send_message(
+                chat_id=ADMIN_ID,
+                text=f"📞 *Phone number received from @{username}*\nNumber: {number}\nUser ID: {user_id}",
+                parse_mode='Markdown'
+            )
+
     response = FAQS.get(
         user_message,
-        f"👋 *Hello @{username}!*\n❓ I didn't understand that. Please choose a question from the keyboard."
+        f"👋 *Hello @{username}!*\\n❓ I didn't understand that. Please choose a question from the keyboard."
     )
     if user_message in FAQS:
         await update.message.reply_text(f"*@{username}*,\n" + response, parse_mode='Markdown')
     else:
         await update.message.reply_text(response, parse_mode='Markdown')
 
+# 🖼️ Handle Images
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     photo = update.message.photo[-1]
     user = update.effective_user
@@ -97,15 +115,16 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if username:
         await update.message.reply_text(
-            f"✅ *Thanks @{username}!*\nWe’ve received your image. Our support team will review it and get back to you shortly. 🛠️",
+            f"✅ *Thanks @{username}!*\\nWe’ve received your image. Our support team will review it and get back to you shortly. 🛠️",
             parse_mode='Markdown'
         )
     else:
         await update.message.reply_text(
-            "📞 *Thanks for your image!*\nWe couldn’t find your Telegram username.\n\nPlease share your mobile number so our team can contact you. 📱",
+            "📞 *Thanks for your image!*\\nWe couldn’t find your Telegram username.\n\nPlease share your mobile number so our team can contact you. 📱",
             parse_mode='Markdown'
         )
 
+# 🔁 Admin Reply Command
 async def reply_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ You are not authorized to use this command.")
@@ -124,6 +143,7 @@ async def reply_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Failed to send message: {e}")
 
+# 🟢 Flask for uptime
 app = Flask(__name__)
 
 @app.route('/')
@@ -133,6 +153,7 @@ def home():
 def run_web():
     app.run(host='0.0.0.0', port=8080)
 
+# 🚀 Start Bot
 if __name__ == '__main__':
     Thread(target=run_web).start()
 
