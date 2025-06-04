@@ -4,8 +4,9 @@ from threading import Thread
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-# ✅ Replace with your actual bot token
+# ✅ Replace with your actual bot token and admin ID
 BOT_TOKEN = '7796252339:AAHt1MKCBjDnVjm2F2MglIFn-m2a2fRUXyk'
+ADMIN_ID = 7482893034  # Replace with your actual Telegram user ID
 
 # FAQs
 FAQS = {
@@ -41,17 +42,18 @@ FAQS = {
     )
 }
 
-# Custom keyboard
 faq_keyboard = ReplyKeyboardMarkup(
     keyboard=[[key] for key in FAQS.keys()],
     resize_keyboard=True,
     one_time_keyboard=False
 )
 
-# /start command handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    with open("NAMASTE.png", "rb") as photo:
-        await update.message.reply_photo(photo)
+    try:
+        with open("NAMASTE.png", "rb") as photo:
+            await update.message.reply_photo(photo)
+    except:
+        pass
 
     await update.message.reply_text(
         "🙏 *Welcome to Indian Mall Support Bot!*\n\n"
@@ -71,7 +73,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
-# Message handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text.strip()
     response = FAQS.get(
@@ -80,7 +81,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(response, parse_mode='Markdown')
 
-# --- Flask App for Uptime Pinging ---
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    photo = update.message.photo[-1]
+    if ADMIN_ID != 123456789:
+        await context.bot.send_photo(chat_id=ADMIN_ID, photo=photo.file_id,
+                                     caption=f"📸 Image received from @{update.effective_user.username or 'user'}")
+    await update.message.reply_text("✅ Thanks! We’ve received your image. Our support team will get back to you shortly.")
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -90,13 +97,11 @@ def home():
 def run_web():
     app.run(host='0.0.0.0', port=8080)
 
-# --- Main Entry Point ---
 if __name__ == '__main__':
-    # Start the web server in a separate thread
     Thread(target=run_web).start()
 
-    # Start the Telegram bot
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     application.run_polling()
