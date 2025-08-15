@@ -11,7 +11,14 @@ ADMIN_IDS = {2146073106, 7482893034}  # Multiple Admin IDs
 # FAQs
 FAQS = {
     "Delivery Charges": "📦 *Delivery Charges:*\nA minimal delivery fee of ₹30 is applicable to ensure safe and timely delivery of your order.",
-    "Delivery Time": "🚀 *Same-day delivery* is available in select locations for eligible products.\nYour order will reach you fast and hassle-free!\n📦 Subject to availability and delivery area.",
+    "Delivery Time": "🚀 *Same-Day Delivery Policy*  
+    We offer *Same-Day Delivery* in select locations for eligible products.  
+
+    🕒 *Order Cut-Off Time:*  
+    Orders placed between *8:00 AM* and *10:00 PM* will be delivered on the *same day*.  
+    Orders placed after *10:00 PM* will be delivered on the *next day*.  
+
+    📦 Subject to product availability and delivery area.,
     "Return Policy": "❌ *No Return | No Replacement | No Refund.*\nPlease read the product description carefully before placing your order.",
     "Contact Support": "📞 *You can contact us via:*\n✉️ Email: support@indianmall.in\n📱 Phone: +91-7796305789, +91-9322410521",
     "Payment Methods": "💳 *We accept a wide range of payment methods:*\nUPI, Debit/Credit Cards, Net Banking,\n150+ UPI Apps, and Partial Cash on Delivery (COD).",
