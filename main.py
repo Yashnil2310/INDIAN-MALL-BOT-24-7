@@ -11,14 +11,14 @@ ADMIN_IDS = {2146073106, 7482893034}  # Multiple Admin IDs
 # FAQs
 FAQS = {
     "Delivery Charges": "📦 *Delivery Charges:*\nA minimal delivery fee of ₹30 is applicable to ensure safe and timely delivery of your order.",
-    "Delivery Time": "🚀 *Same-Day Delivery Policy*  
-    We offer *Same-Day Delivery* in select locations for eligible products.  
-
-    🕒 *Order Cut-Off Time:*  
-    Orders placed between *8:00 AM* and *10:00 PM* will be delivered on the *same day*.  
-    Orders placed after *10:00 PM* will be delivered on the *next day*.  
-
-    📦 Subject to product availability and delivery area.,
+    "Delivery Time": (
+        "🚀 *Same-Day Delivery Policy*\n"
+        "We offer *Same-Day Delivery* in select locations for eligible products.\n\n"
+        "🕒 *Order Cut-Off Time:*\n"
+        "Orders placed between *8:00 AM* and *10:00 PM* will be delivered on the *same day*.\n"
+        "Orders placed after *10:00 PM* will be delivered on the *next day*.\n\n"
+        "📦 Subject to product availability and delivery area."
+    ),
     "Return Policy": "❌ *No Return | No Replacement | No Refund.*\nPlease read the product description carefully before placing your order.",
     "Contact Support": "📞 *You can contact us via:*\n✉️ Email: support@indianmall.in\n📱 Phone: +91-7796305789, +91-9322410521",
     "Payment Methods": "💳 *We accept a wide range of payment methods:*\nUPI, Debit/Credit Cards, Net Banking,\n150+ UPI Apps, and Partial Cash on Delivery (COD).",
@@ -38,7 +38,6 @@ async def alert_if_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.effective_user.username or update.effective_user.first_name or "Unknown"
     ip_addr = request.remote_addr if request else "Polling Mode"
 
-    # Log in console
     print(f"[SECURITY] User: {username} ({user_id}) from IP: {ip_addr}")
 
     if user_id not in ADMIN_IDS:
@@ -50,7 +49,7 @@ async def alert_if_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode='Markdown'
             )
 
-# /start
+# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await alert_if_unknown(update, context)
 
@@ -76,22 +75,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.effective_user.username or update.effective_user.first_name or "there"
     user_id = update.effective_user.id
 
-    found_numbers = re.findall(r'\b[6-9]\d{9}\b', user_message)
-    if found_numbers:
-        for number in found_numbers:
-            for admin in ADMIN_IDS:
-                await context.bot.send_message(
-                    chat_id=admin,
-                    text=f"📞 *Phone number from @{username}*\nNumber: {number}\nUser ID: {user_id}",
-                    parse_mode='Markdown'
-                )
+    # Forward message to all admins
+    for admin in ADMIN_IDS:
+        await context.bot.send_message(
+            chat_id=admin,
+            text=(
+                f"📩 *New Message Received*\n"
+                f"👤 From: @{username}\n"
+                f"🆔 User ID: `{user_id}`\n\n"
+                f"💬 Message:\n{user_message}"
+            ),
+            parse_mode='Markdown'
+        )
 
+    # If it's a FAQ, reply automatically
     if user_message in FAQS:
-        response = FAQS[user_message]
-        await update.message.reply_text(f"*@{username}*,\n" + response, parse_mode='Markdown')
+        await update.message.reply_text(f"*@{username}*,\n" + FAQS[user_message], parse_mode='Markdown')
     else:
         await update.message.reply_text(
-            "✅ *Thank you for sharing your contact details.*\nOur support team will reach out soon. 📞",
+            "✅ *Your message has been sent to our support team.*\nThey will reply to you shortly.",
             parse_mode='Markdown'
         )
 
@@ -99,15 +101,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await alert_if_unknown(update, context)
 
-    photo = update.message.photo[-1]
     username = update.effective_user.username or update.effective_user.first_name or "there"
+    user_id = update.effective_user.id
 
     for admin in ADMIN_IDS:
         await context.bot.send_photo(
             chat_id=admin,
-            photo=photo.file_id,
-            caption=f"📸 Image received from @{username}\nUser ID: {update.effective_user.id}"
+            photo=update.message.photo[-1].file_id,
+            caption=f"📸 Image received from @{username}\n🆔 User ID: `{user_id}`",
+            parse_mode='Markdown'
         )
+
+    await update.message.reply_text(
+        "✅ *Your photo has been sent to our support team.*\nThey will reply to you shortly.",
+        parse_mode='Markdown'
+    )
 
 # /reply command
 async def reply_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
