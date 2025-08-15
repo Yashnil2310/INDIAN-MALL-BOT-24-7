@@ -1,2 +1,3 @@
 Flask==2.3.3
-python-telegram-bot==20.3
+Werkzeug==2.3.7
+python-telegram-bot==
