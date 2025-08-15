@@ -181,11 +181,28 @@ async def telegram_webhook():
 
         update = Update.de_json(data, bot)
 
-        # 🔹 Direct admin check at webhook level
-        await alert_if_unknown(update, ContextTypes.DEFAULT_TYPE(), source="webhook")
+        # Direct admin notify without PTB context
+        user = update.effective_user
+        if user and user.id not in ADMIN_IDS:
+            username = user.username or user.first_name or "Unknown"
+            time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log.info(f"[WEBHOOK] Unknown user detected: {username} ({user.id})")
+            for admin in ADMIN_IDS:
+                await bot.send_message(
+                    chat_id=admin,
+                    text=(
+                        "⚠️ *Unknown User Detected!*\n"
+                        f"👤 User: @{username}\n"
+                        f"🆔 ID: {user.id}\n"
+                        f"🌐 IP: Webhook\n"
+                        f"🕒 Time: {time_now}"
+                    ),
+                    parse_mode="Markdown",
+                )
 
         await application.process_update(update)
         return Response("ok", status=200)
+
     except Exception as e:
         log.exception(f"[ERROR] Webhook error: {e}")
         return Response("error", status=500)
