@@ -5,7 +5,7 @@ from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
 # Bot credentials
-BOT_TOKEN = '7796252339:AAFjBXZkKF6JvEt6Y9aVl7FIKRPcFAdtX64'
+BOT_TOKEN = '7796252339:AAFadwYkYlsBEsUPPGCgr1WKJr8mkPL2x34'
 ADMIN_ID = 7482893034
 
 # FAQs
