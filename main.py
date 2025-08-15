@@ -9,10 +9,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("indian-mall-bot")
 
-# ====== CONFIG (ENV first, fallback to your provided values) ======
+# ====== CONFIG ======
 BOT_TOKEN = os.getenv("BOT_TOKEN", "7796252339:AAFadwYkYlsBEsUPPGCgr1WKJr8mkPL2x34")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://indian-mall-bot-24-7.onrender.com/webhook")
-ADMIN_IDS = {2146073106, 7482893034}  # multiple admins supported
+ADMIN_IDS = set(map(int, os.getenv("ADMIN_IDS", "2146073106,7482893034").split(",")))
 
 # ====== FAQs ======
 FAQS = {
@@ -49,18 +49,19 @@ application = ApplicationBuilder().token(BOT_TOKEN).build()
 bot = application.bot
 
 # ====== Helpers ======
-async def alert_if_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Notify admins when a non-admin user interacts (no Flask request access here; mark as Webhook)."""
+async def alert_if_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE, source="handler"):
+    """Notify admins when a non-admin user interacts."""
     try:
         user = update.effective_user
         if not user:
             return
         user_id = user.id
         username = user.username or user.first_name or "Unknown"
-        ip_addr = "Webhook"  # We don't access request object inside Telegram handler
+        ip_addr = "Webhook" if source == "webhook" else "Handler"
         time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if user_id not in ADMIN_IDS:
+            log.info(f"[{source.upper()}] Unknown user detected: {username} ({user_id})")
             for admin in ADMIN_IDS:
                 await context.bot.send_message(
                     chat_id=admin,
@@ -80,11 +81,10 @@ async def alert_if_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await alert_if_unknown(update, context)
     try:
-        # Optional welcome image (ignore if not present)
         try:
             with open("NAMASTE.png", "rb") as photo:
                 await update.message.reply_photo(photo)
-        except Exception:
+        except FileNotFoundError:
             pass
 
         await update.message.reply_text(
@@ -106,7 +106,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             uname = update.effective_user.username or update.effective_user.first_name or "User"
             uid = update.effective_user.id
-            # forward to admins
             for admin in ADMIN_IDS:
                 await context.bot.send_message(
                     chat_id=admin,
@@ -181,20 +180,22 @@ async def telegram_webhook():
             return Response("no data", status=400)
 
         update = Update.de_json(data, bot)
-        # Process update *awaited* to avoid background loop issues
+
+        # 🔹 Direct admin check at webhook level
+        await alert_if_unknown(update, ContextTypes.DEFAULT_TYPE(), source="webhook")
+
         await application.process_update(update)
         return Response("ok", status=200)
     except Exception as e:
         log.exception(f"[ERROR] Webhook error: {e}")
         return Response("error", status=500)
 
-# ====== Lifecycle (start PTB workers + set webhook) ======
+# ====== Lifecycle ======
 @app.before_serving
 async def startup():
     log.info("Starting PTB application and setting webhook...")
     await application.initialize()
     await application.start()
-    # ensure clean webhook then set new
     await bot.delete_webhook(drop_pending_updates=True)
     await bot.set_webhook(url=WEBHOOK_URL)
     log.info(f"Webhook set to: {WEBHOOK_URL}")
@@ -208,7 +209,5 @@ async def shutdown():
 
 # ====== Entrypoint ======
 if __name__ == "__main__":
-    # Render/hosting platforms usually set PORT env
     port = int(os.getenv("PORT", "8080"))
-    # Quart runs the ASGI server
     app.run(host="0.0.0.0", port=port)
