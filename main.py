@@ -1,19 +1,15 @@
 from flask import Flask, request
-from threading import Thread
-import re
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import asyncio
 import os
 
-# Bot credentials
-BOT_TOKEN = "7796252339:AAFadwYkYlsBEsUPPGCgr1WKJr8mkPL2x34"
-ADMIN_IDS = {2146073106, 7482893034}  # Multiple Admin IDs
+# ====== CONFIG (env से data लो) ======
+BOT_TOKEN = os.getenv("BOT_TOKEN", "7796252339:AAFadwYkYlsBEsUPPGCgr1WKJr8mkPL2x34")
+ADMIN_IDS = {2146073106, 7482893034}
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://indian-mall-bot-24-7.onrender.com/webhook")
 
-# Your Render domain
-WEBHOOK_URL = "https://indian-mall-bot-24-7.onrender.com/webhook"
-
-# FAQs
+# ====== FAQs ======
 FAQS = {
     "Delivery Charges": "📦 *Delivery Charges:*\nA minimal delivery fee of ₹30 is applicable to ensure safe and timely delivery of your order.",
     "Delivery Time": (
@@ -30,120 +26,84 @@ FAQS = {
     "What is Partial COD?": "💰 *What is Partial COD?*\n\nPartial COD means you pay a small advance online while placing the order, and the remaining amount in cash when the product is delivered.\n\n🔹 Example: For a ₹500 order, you may pay ₹100 online and ₹400 on delivery.\n\n✅ This ensures safe and genuine orders from customers."
 }
 
-# Keyboard
+# ====== Keyboard ======
 faq_keyboard = ReplyKeyboardMarkup(
     keyboard=[[key] for key in FAQS.keys()],
     resize_keyboard=True,
     one_time_keyboard=False
 )
 
-# Alert function
+# ====== Flask App ======
+app = Flask(__name__)
+application = ApplicationBuilder().token(BOT_TOKEN).build()
+bot = application.bot
+
+# ====== Helpers ======
 async def alert_if_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     username = update.effective_user.username or update.effective_user.first_name or "Unknown"
     ip_addr = request.remote_addr if request else "Webhook"
 
-    print(f"[SECURITY] User: {username} ({user_id}) from IP: {ip_addr}")
-
     if user_id not in ADMIN_IDS:
         for admin in ADMIN_IDS:
             await context.bot.send_message(
                 chat_id=admin,
-                text=f"⚠️ *Unknown User Detected!*\n"
-                     f"👤 Username: @{username}\n🆔 ID: {user_id}\n🌐 IP: {ip_addr}",
+                text=f"⚠️ *Unknown User Detected!*\n👤 @{username}\n🆔 {user_id}\n🌐 IP: {ip_addr}",
                 parse_mode='Markdown'
             )
 
-# /start command
+# ====== Handlers ======
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await alert_if_unknown(update, context)
-
-    try:
-        with open("NAMASTE.png", "rb") as photo:
-            await update.message.reply_photo(photo)
-    except:
-        pass
-
     await update.message.reply_text(
-        "🙏 *Welcome to Indian Mall Support Bot!*\n\n"
-        "🛍️ Your one-stop solution for all shopping queries.\n\n"
-        "👇 Tap a question below to get started instantly!",
+        "🙏 *Welcome to Indian Mall Support Bot!*\n\n🛍️ Your one-stop solution for all shopping queries.\n\n👇 Tap a question below to get started instantly!",
         reply_markup=faq_keyboard,
         parse_mode='Markdown'
     )
 
-# Text handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await alert_if_unknown(update, context)
-
     user_message = update.message.text.strip()
-    username = update.effective_user.username or update.effective_user.first_name or "there"
-    user_id = update.effective_user.id
 
-    # Forward message to all admins
-    for admin in ADMIN_IDS:
-        await context.bot.send_message(
-            chat_id=admin,
-            text=(
-                f"📩 *New Message Received*\n"
-                f"👤 From: @{username}\n"
-                f"🆔 User ID: `{user_id}`\n\n"
-                f"💬 Message:\n{user_message}"
-            ),
-            parse_mode='Markdown'
-        )
-
-    # If it's a FAQ, reply automatically
     if user_message in FAQS:
-        await update.message.reply_text(f"*@{username}*,\n" + FAQS[user_message], parse_mode='Markdown')
+        await update.message.reply_text(FAQS[user_message], parse_mode='Markdown')
     else:
-        await update.message.reply_text(
-            "✅ *Your message has been sent to our support team.*\nThey will reply to you shortly.",
-            parse_mode='Markdown'
-        )
+        for admin in ADMIN_IDS:
+            await context.bot.send_message(
+                chat_id=admin,
+                text=f"📩 *New Message Received*\n👤 @{update.effective_user.username}\n🆔 {update.effective_user.id}\n💬 {user_message}",
+                parse_mode='Markdown'
+            )
+        await update.message.reply_text("✅ *Your message has been sent to our support team.*", parse_mode='Markdown')
 
-# Photo handler
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await alert_if_unknown(update, context)
-
-    username = update.effective_user.username or update.effective_user.first_name or "there"
-    user_id = update.effective_user.id
-
     for admin in ADMIN_IDS:
         await context.bot.send_photo(
             chat_id=admin,
             photo=update.message.photo[-1].file_id,
-            caption=f"📸 Image received from @{username}\n🆔 User ID: `{user_id}`",
+            caption=f"📸 Image from @{update.effective_user.username}",
             parse_mode='Markdown'
         )
+    await update.message.reply_text("✅ Your photo has been sent to support.", parse_mode='Markdown')
 
-    await update.message.reply_text(
-        "✅ *Your photo has been sent to our support team.*\nThey will reply to you shortly.",
-        parse_mode='Markdown'
-    )
-
-# /reply command
 async def reply_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
         await update.message.reply_text("❌ You are not authorized.")
         return
-
     if len(context.args) < 2:
         await update.message.reply_text("⚠️ Usage: /reply <user_id> <your message>")
         return
 
     user_id = int(context.args[0])
     message_text = " ".join(context.args[1:])
-
     try:
         await context.bot.send_message(chat_id=user_id, text=message_text)
         await update.message.reply_text("✅ Message sent successfully.")
     except Exception as e:
         await update.message.reply_text(f"❌ Failed: {e}")
 
-# Flask server
-app = Flask(__name__)
-
+# ====== Flask Routes ======
 @app.route('/')
 def home():
     return "✅ Indian Mall Bot is live!"
@@ -154,21 +114,17 @@ def webhook():
     asyncio.run(application.process_update(update))
     return "ok"
 
-# Init bot
-application = ApplicationBuilder().token(BOT_TOKEN).build()
-bot = application.bot
-
-# Add handlers
+# ====== Register Handlers ======
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("reply", reply_command))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
+# ====== Main ======
 if __name__ == '__main__':
-    # Set webhook
-    bot.delete_webhook()
-    bot.set_webhook(url=WEBHOOK_URL)
-    print(f"[INFO] Webhook set to: {WEBHOOK_URL}")
+    async def setup_webhook():
+        await bot.delete_webhook()
+        await bot.set_webhook(url=WEBHOOK_URL)
 
-    # Run Flask
+    asyncio.run(setup_webhook())
     app.run(host='0.0.0.0', port=8080)
