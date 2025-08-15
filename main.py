@@ -4,7 +4,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Con
 import asyncio
 import os
 
-# ====== CONFIG (env से data लो) ======
+# ====== CONFIG ======
 BOT_TOKEN = os.getenv("BOT_TOKEN", "7796252339:AAFadwYkYlsBEsUPPGCgr1WKJr8mkPL2x34")
 ADMIN_IDS = {2146073106, 7482893034}
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://indian-mall-bot-24-7.onrender.com/webhook")
@@ -33,7 +33,7 @@ faq_keyboard = ReplyKeyboardMarkup(
     one_time_keyboard=False
 )
 
-# ====== Flask App ======
+# ====== Flask App & Bot ======
 app = Flask(__name__)
 application = ApplicationBuilder().token(BOT_TOKEN).build()
 bot = application.bot
@@ -110,9 +110,17 @@ def home():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    asyncio.run(application.process_update(update))
-    return "ok"
+    try:
+        data = request.get_json(force=True)
+        if not data:
+            return "no data", 400
+
+        update = Update.de_json(data, bot)
+        asyncio.get_event_loop().create_task(application.process_update(update))
+        return "ok"
+    except Exception as e:
+        print(f"[ERROR] Webhook error: {e}")
+        return "error", 500
 
 # ====== Register Handlers ======
 application.add_handler(CommandHandler("start", start))
