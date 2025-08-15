@@ -3,10 +3,15 @@ from threading import Thread
 import re
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+import asyncio
+import os
 
 # Bot credentials
 BOT_TOKEN = "7796252339:AAFadwYkYlsBEsUPPGCgr1WKJr8mkPL2x34"
 ADMIN_IDS = {2146073106, 7482893034}  # Multiple Admin IDs
+
+# Your Render domain
+WEBHOOK_URL = "https://indian-mall-bot-24-7.onrender.com/webhook"
 
 # FAQs
 FAQS = {
@@ -36,7 +41,7 @@ faq_keyboard = ReplyKeyboardMarkup(
 async def alert_if_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     username = update.effective_user.username or update.effective_user.first_name or "Unknown"
-    ip_addr = request.remote_addr if request else "Polling Mode"
+    ip_addr = request.remote_addr if request else "Webhook"
 
     print(f"[SECURITY] User: {username} ({user_id}) from IP: {ip_addr}")
 
@@ -143,16 +148,27 @@ app = Flask(__name__)
 def home():
     return "✅ Indian Mall Bot is live!"
 
-def run_web():
-    app.run(host='0.0.0.0', port=8080, debug=False, use_reloader=False)
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), bot)
+    asyncio.run(application.process_update(update))
+    return "ok"
 
-# Start
+# Init bot
+application = ApplicationBuilder().token(BOT_TOKEN).build()
+bot = application.bot
+
+# Add handlers
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("reply", reply_command))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+
 if __name__ == '__main__':
-    Thread(target=run_web).start()
+    # Set webhook
+    bot.delete_webhook()
+    bot.set_webhook(url=WEBHOOK_URL)
+    print(f"[INFO] Webhook set to: {WEBHOOK_URL}")
 
-    tg_app = ApplicationBuilder().token(BOT_TOKEN).build()
-    tg_app.add_handler(CommandHandler("start", start))
-    tg_app.add_handler(CommandHandler("reply", reply_command))
-    tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    tg_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-    tg_app.run_polling()
+    # Run Flask
+    app.run(host='0.0.0.0', port=8080)
