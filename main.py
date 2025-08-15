@@ -2,13 +2,12 @@ from flask import Flask, request
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import asyncio
-import os
 from datetime import datetime
 
 # ====== CONFIG ======
-BOT_TOKEN = os.getenv("BOT_TOKEN", "7796252339:AAFadwYkYlsBEsUPPGCgr1WKJr8mkPL2x34")
-ADMIN_IDS = {2146073106, 7482893034}
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://indian-mall-bot-24-7.onrender.com/webhook")
+BOT_TOKEN = "7796252339:AAFadwYkYlsBEsUPPGCgr1WKJr8mkPL2x34"  # Tera token
+ADMIN_IDS = {2146073106, 7482893034}  # Tere admin IDs
+WEBHOOK_URL = "https://indian-mall-bot-24-7.onrender.com/webhook"  # Tera Render URL
 
 # ====== FAQs ======
 FAQS = {
