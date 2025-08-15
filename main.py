@@ -3,6 +3,7 @@ from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import asyncio
 import os
+from datetime import datetime
 
 # ====== CONFIG ======
 BOT_TOKEN = os.getenv("BOT_TOKEN", "7796252339:AAFadwYkYlsBEsUPPGCgr1WKJr8mkPL2x34")
@@ -43,12 +44,19 @@ async def alert_if_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     username = update.effective_user.username or update.effective_user.first_name or "Unknown"
     ip_addr = request.remote_addr if request else "Webhook"
+    time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if user_id not in ADMIN_IDS:
         for admin in ADMIN_IDS:
             await context.bot.send_message(
                 chat_id=admin,
-                text=f"⚠️ *Unknown User Detected!*\n👤 @{username}\n🆔 {user_id}\n🌐 IP: {ip_addr}",
+                text=(
+                    f"⚠️ *Unknown User Detected!*\n"
+                    f"👤 User: @{username}\n"
+                    f"🆔 ID: {user_id}\n"
+                    f"🌐 IP: {ip_addr}\n"
+                    f"🕒 Time: {time_now}"
+                ),
                 parse_mode='Markdown'
             )
 
